@@ -29,7 +29,7 @@ let svrinx = 0
 /** 정상체크용 핸들러 */
 let hndHeartbeat = null 
 
-const proxy = createProxyServer({ })
+const proxy = proxyServer()
 
 /** 편집기에서 자동완성 사용을 위해 공스키마 작성후 삭제 */
 const servers = [{
@@ -90,7 +90,7 @@ setTimeout(checkAlive, 2000)
 function serverValid(server, curtime) {
   server.alive = true
   server.nextping = curtime + NEXT_PING_VALID
-  if (!server.proxy) { server.proxy = createProxyServer({}) }
+  if (!server.proxy) { server.proxy = proxyServer() }
 }
 
 /** 서버가 비정상인 경우 셋팅 */
@@ -130,6 +130,7 @@ const loadbalancer = http.createServer(async (req, res) => {
     }
     /** 서버 정상판단여부가 끝나면 Proxy 를 통해 본 Request 수행 */
     if (server.alive && server.proxy?.web) {
+      req.headers['x-svrinx'] = svrinx
       req.rawHeaders['x-svrinx'] = svrinx
       server.proxy.web(req, res, { target: server.target, proxyTimeout: REQUEST_TIMEOUT, timeout: REQUEST_TIMEOUT })
       break RETRY_LOOP
@@ -149,15 +150,26 @@ process.on('uncoughtException', (err) => {
   console.error('Uncought exception:', err)
 })
 
-/** 각 서버 인스턴스에서 Request 처리중 오류가 발생한 경우 */
-proxy.on('error', (err, req, res) => {
-  const curtime = new Date().getTime()
-  const svrinx = req.rawHeaders['x-svrinx']
-  serverInvalid(servers[svrinx], curtime)
-  console.log('ERROR:', svrinx, err)
-  res.writeHead(500, { 'Content-Type': 'application/json' })
-  res.end('Internal Server Error')
-})
+
+function proxyServer() {
+  const proxy = createProxyServer({})
+  /** 각 서버 인스턴스에서 Request 처리중 오류가 발생한 경우 */
+  proxy.on('error', (err, req, res) => {
+    const curtime = new Date().getTime()
+    const svrinx = req.rawHeaders['x-svrinx']
+    serverInvalid(servers[svrinx], curtime)
+    console.log('ERROR:', svrinx, err)
+    res.writeHead(500, { 'Content-Type': 'application/json' })
+    res.end('Internal Server Error')
+  })
+  proxy.on('proxyRes', (pres, req, res) => {
+    const svrinx = req.rawHeaders['x-svrinx']
+    const path = req.url
+    console.log('SVR-INX:', svrinx, path)
+    res.setHeader('x-svrinx', svrinx)
+  })
+  return proxy
+}
 
 const PORT = pm2apps.apps[0].env.PORT
 loadbalancer.listen(PORT, () => { console.log(`Load Balancer running on port ${PORT}`) })
