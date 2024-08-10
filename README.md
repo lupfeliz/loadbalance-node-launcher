@@ -1,93 +1,122 @@
-# loadbalance-node-launcher
+[TOC]
 
+# 멀티 스레드 부하분산 노드 런처
 
+## 1. 개요
 
-## Getting started
+nodejs 프로젝트를 운영에 적용시 multi-thread 로 실행 되도록 [pm2](https://pm2.keymetrics.io/) 설정과 간단한 `load-balancer` 를 포함한 실행기(런처) 작성
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## 2. 준비 및 설정
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+- 프로젝트를 내려받은 후 `npm install` 을 실행한다
 
-## Add your files
+<!--[-------------------------------------------------------------------------->
+```bash
+$ git clone https://gitlab.ntiple.com/developers/loadbalance-node-launcher.git
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+Cloning into 'loadbalance-node-launcher'...
+remote: Enumerating objects: 3, done.
+remote: Counting objects: 100% (3/3), done.
+remote: Compressing objects: 100% (2/2), done.
+remote: Total 3 (delta 0), reused 0 (delta 0), pack-reused 0
+Receiving objects: 100% (3/3), done.
 
+$ cd loadbalance-node-launcher
+$ npm install
+
+added 142 packages, and audited 143 packages in 1s
+14 packages are looking for funding
+  run `npm fund` for details
+found 0 vulnerabilities
 ```
-cd existing_repo
-git remote add origin https://gitlab.ntiple.com/developers/loadbalance-node-launcher.git
-git branch -M main
-git push -uf origin main
+<!--]-------------------------------------------------------------------------->
+
+- `.env` 파일을 작성한다
+
+<!--[-------------------------------------------------------------------------->
+```bash
+### 예제 파일. 프로젝트에 맞게 수정한다
+PORT = 3000
+PING_URI = /ping.html
+PROFILE = local
+INSTANCE_NAME = 'my-next-app'
+INSTANCE_PATH = '/home/coder/documents/my-first-app/my-next-app'
+INSTANCES = 3
 ```
+<!--]-------------------------------------------------------------------------->
 
-## Integrate with your tools
 
-- [ ] [Set up project integrations](http://gitlab.ntiple.com/developers/loadbalance-node-launcher/-/settings/integrations)
+## 3. 구동 및 사용방법
 
-## Collaborate with your team
+- 이후 `npx pm2 start` 로 구동 가능하다 (`my-next-app` 이 여러개 스레드로 구동된 것을 확인 가능)
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+<!--[-------------------------------------------------------------------------->
+```bash
+$ npx pm2 start
 
-## Test and Deploy
+[PM2] Spawning PM2 daemon with pm2_home=/home/coder/.pm2
+[PM2] PM2 Successfully daemonized
+[PM2][WARN] Applications ##load-balancer##, my-next-app, my-next-app, my-next-app not running, starting...
+[PM2] App [##load-balancer##] launched (1 instances)
+[PM2] App [my-next-app] launched (1 instances)
+[PM2] App [my-next-app] launched (1 instances)
+[PM2] App [my-next-app] launched (1 instances)
+┌────┬──────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name                 │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼──────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ ##load-balancer##    │ default     │ N/A     │ cluster │ 3175440  │ 0s     │ 0    │ online    │ 0%       │ 54.9mb   │ coder    │ disabled │
+│ 1  │ my-next-app          │ default     │ N/A     │ cluster │ 3175441  │ 0s     │ 0    │ online    │ 0%       │ 54.0mb   │ coder    │ disabled │
+│ 2  │ my-next-app          │ default     │ N/A     │ cluster │ 3175454  │ 0s     │ 0    │ online    │ 0%       │ 49.9mb   │ coder    │ disabled │
+│ 3  │ my-next-app          │ default     │ N/A     │ cluster │ 3175460  │ 0s     │ 0    │ online    │ 0%       │ 47.0mb   │ coder    │ disabled │
+└────┴──────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+```
+<!--]-------------------------------------------------------------------------->
 
-Use the built-in continuous integration in GitLab.
+- 구동 중단은 `npx pm2 kill` 명령으로 가능하다
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+<!--[-------------------------------------------------------------------------->
+```bash
+$ npx pm2 kill
 
-***
+[PM2] Applying action deleteProcessId on app [all](ids: [ 0, 1, 2, 3 ])
+[PM2] [##load-balancer##](0) ✓
+[PM2] [my-next-app](1) ✓
+[PM2] [my-next-app](3) ✓
+[PM2] [my-next-app](2) ✓
+[PM2] [v] All Applications Stopped
+[PM2] [v] PM2 Daemon Stopped
+```
+<!--]-------------------------------------------------------------------------->
 
-# Editing this README
+- 로그 확인은 `npx pm2 log` 명령으로 가능하다
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+<!--[-------------------------------------------------------------------------->
+```bash
+$ npx pm2 log
 
-## Suggestions for a good README
+[TAILING] Tailing last 15 lines for [all] processes (change the value with --lines option)
+/home/coder/.pm2/pm2.log last 15 lines:
+PM2        |   - Local:        http://localhost:3003
+PM2        | 
+PM2        |  ✓ Starting...
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+... 중략 ...
 
-## Name
-Choose a self-explaining name for your project.
+0|##load-b | CREATE-PROXY: 1 my-next-app http://localhost:3001
+0|##load-b | CREATE-PROXY: 2 my-next-app http://localhost:3002
+0|##load-b | CREATE-PROXY: 3 my-next-app http://localhost:3003
+```
+<!--]-------------------------------------------------------------------------->
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+- 구동후 `curl` 로 정상 작동 확인해 본다
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+<!--[-------------------------------------------------------------------------->
+```bash
+$curl --get 'http://localhost:3000'
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+<!DOCTYPE html><html class="light-mode"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width"/><meta name="next-head-count" content="2"/><meta http-equiv="cache-control" content="max-age=0"/><meta http-equiv="cache-control" content="no-cache"/><meta http-equiv="expires" content="0"/><meta http-equiv="expires" content="Tue, 01 Jan 1980 1:00:00 GMT"/><meta http-equiv="pragma" content="no-cache"/><script>window.globalThis = window;</script><link rel="preload" type="font/woff2" href="/assets/fonts/jal-onuel.woff" as="font"/><link rel="stylesheet" type="text/css" href="/assets/fonts/jal-onuel.css"/><meta name="revised" content="2024-08-11T02:04:30.196+09:00"/><style>
+          body { transition: opacity 0.5s 0.2s ease }
+          .hide-preload { opacity: 0; }
+... 중략 ...
+```
+<!--]-------------------------------------------------------------------------->
