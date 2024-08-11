@@ -10,15 +10,21 @@ nodejs 프로젝트를 운영에 적용시 multi-thread 로 실행 되도록 [pm
 ```mermaid
 stateDiagram-V2
 direction TB
-PM2 --> LOAD_BALANCER
-PM2 --> INSTANCE_1
-PM2 --> INSTANCE_2
-PM2 --> INSTANCE_3
-PM2 --> INSTANCE_N
-LOAD_BALANCER --> INSTANCE_1
-LOAD_BALANCER --> INSTANCE_2
-LOAD_BALANCER --> INSTANCE_3
-LOAD_BALANCER --> INSTANCE_N
+USER --> LOAD_BALANCER
+PM2 --> LOAD_BALANCER: 프로세스관리
+PM2 --> INSTANCE_1: 프로세스관리
+PM2 --> INSTANCE_2: 프로세스관리
+PM2 --> INSTANCE_3: 프로세스관리
+PM2 --> INSTANCE_N: 프로세스관리
+LOAD_BALANCER --> INSTANCE_1: 부하분산
+LOAD_BALANCER --> INSTANCE_2: 부하분산
+LOAD_BALANCER --> INSTANCE_3: 부하분산
+LOAD_BALANCER --> INSTANCE_N: 부하분산
+note left of LOAD_BALANCER 3000번 포트로 실행 end note
+note right of INSTANCE_1 3001번 포트로 실행 end note
+note right of INSTANCE_2 3002번 포트로 실행 end note
+note right of INSTANCE_3 3003번 포트로 실행 end note
+note right of INSTANCE_N 300n번 포트로 실행 end note
 ```
 <!--]-------------------------------------------------------------------------->
 
