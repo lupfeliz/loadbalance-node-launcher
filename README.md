@@ -6,6 +6,22 @@
 
 nodejs 프로젝트를 운영에 적용시 multi-thread 로 실행 되도록 [pm2](https://pm2.keymetrics.io/) 설정과 간단한 `load-balancer` 를 포함한 실행기(런처) 작성
 
+<!--[-------------------------------------------------------------------------->
+```mermaid
+stateDiagram-V2
+direction TB
+PM2 --> LOAD_BALANCER
+PM2 --> INSTANCE_1
+PM2 --> INSTANCE_2
+PM2 --> INSTANCE_3
+PM2 --> INSTANCE_N
+LOAD_BALANCER --> INSTANCE_1
+LOAD_BALANCER --> INSTANCE_2
+LOAD_BALANCER --> INSTANCE_3
+LOAD_BALANCER --> INSTANCE_N
+```
+<!--]-------------------------------------------------------------------------->
+
 ## 2. 준비 및 설정
 
 - 프로젝트를 내려받은 후 `npm install` 을 실행한다
@@ -45,6 +61,16 @@ INSTANCES = 3
 ```
 <!--]-------------------------------------------------------------------------->
 
+- instance 로 실행될 node 프로젝트는 **미리 빌드되어 있어야** 한다.
+
+<!--[-------------------------------------------------------------------------->
+```bash
+$ cd /home/coder/documents/my-first-app/my-next-app
+$ npm run build
+
+... 중략 ...
+```
+<!--]-------------------------------------------------------------------------->
 
 ## 3. 구동 및 사용방법
 
