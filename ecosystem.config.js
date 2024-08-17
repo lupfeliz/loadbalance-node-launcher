@@ -57,7 +57,7 @@ for (let inx = 0; inx < instances; inx++) {
   apps.push({
     name: INSTANCE_NAME,
     cwd: path,
-    script: 'npm',
+    script: 'node_modules/next/dist/bin/next',
     args: 'start',
     exec_mode: 'fork',
     env: {

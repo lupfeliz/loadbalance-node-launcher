@@ -58,7 +58,7 @@ for (const itm of pm2conf.apps) {
 
 /** PING체크, HEAD 메소드로 접근하여 부담을 최소화 시킨다 */
 function ping(target, opt) {
-  console.log('PING..', target, PING_TIME)
+  // console.log('PING..', target, PING_TIME)
   return fetch (`${target}${PING_URI}`, {
     method: 'HEAD',
     keepalive: true,
