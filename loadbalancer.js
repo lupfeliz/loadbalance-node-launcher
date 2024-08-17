@@ -7,8 +7,6 @@
  **/
 const http = require('http')
 const { createProxyServer } = require('http-proxy')
-// const express = require('express');
-// const eproxy = require('express-http-proxy');
 const pm2conf = require('./ecosystem.config')
 
 /** PING 체크 제한시간 */
@@ -107,9 +105,6 @@ function serverInvalid(server, curtime) {
 }
 
 /** 로드밸런싱 */
-// const loadbalancer = express()
-// loadbalancer.use(async (req, res, next) => { })
-// const loadbalancer = http.createServer(async (req, res) => { })
 const loadbalancer = http.createServer(async (req, res) => {
   /** 서버 갯수만큼 retry 한다 */
   RETRY_LOOP: for (let retry = 0; retry < servers.length + 1; retry++) {
@@ -138,12 +133,6 @@ const loadbalancer = http.createServer(async (req, res) => {
       }
     }
     /** 서버 정상판단여부가 끝나면 Proxy 를 통해 본 Request 수행 */
-    // if (server.alive) {
-    //   req.headers['x-svrinx'] = svrinx
-    //   req.rawHeaders['x-svrinx'] = svrinx
-    //   eproxy(server.target)(req, res, next);
-    //   break RETRY_LOOP
-    // }
     if (server.alive && server.proxy?.web) {
       req.headers['x-svrinx'] = svrinx
       req.rawHeaders['x-svrinx'] = svrinx
@@ -165,7 +154,6 @@ Object.assign(loadbalancer, {
 process.on('uncoughtException', (err) => {
   console.error('Uncought exception:', err)
 })
-
 
 function proxyServer() {
   const proxy = createProxyServer({})
