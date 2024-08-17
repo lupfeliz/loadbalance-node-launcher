@@ -7,7 +7,9 @@
  **/
 const http = require('http')
 const { createProxyServer } = require('http-proxy')
-const pm2apps = require('./ecosystem.config')
+// const express = require('express');
+// const eproxy = require('express-http-proxy');
+const pm2conf = require('./ecosystem.config')
 
 /** PING 체크 제한시간 */
 const PING_TIME = 50
@@ -20,9 +22,10 @@ const HEARTBEAT_INTERVAL = 1000 * 5
 /** http 요청 제한시간 */
 const REQUEST_TIMEOUT = 3000
 /** PING 체크용 컨텐츠 URI */
-const PING_URI = pm2apps.apps[0].env.PING_URI
+const PING_URI = pm2conf.apps[0].env.PING_URI
 /** 인스턴스명 (노드 프로젝트명) */
-const INSTANCE_NAME = pm2apps.apps[0].env.INSTANCE_NAME
+const INSTANCE_NAME = pm2conf.apps[0].env.INSTANCE_NAME
+const LBNO = Number(process.env.LBNO)
 
 /** 서버 포인터 (Round-Robin 형태) */
 let svrinx = 0
@@ -36,19 +39,20 @@ const servers = [{
     target: '',
     alive: true,
     nextping: 0,
-    proxy: proxy
+    proxy
 }]
 servers.splice(0, 1)
 
 /** pm2 설정에 있는 서버 인스턴스대로 프록시 설정 작성 */
-for (const itm of pm2apps.apps) {
+for (const itm of pm2conf.apps) {
   if (itm.name !== INSTANCE_NAME) { continue }
-  const target = `http://localhost:${itm.env.PORT}`
+  const target = `http://127.0.0.1:${itm.env.PORT}`
   servers.push({
     target: target,
     alive: true,
     nextping: 0,
-    proxy: proxy })
+    proxy
+  })
   console.log('CREATE-PROXY:', servers.length, itm.name, target)
   /** 서버 활성화를 위해 약 구동1초 정도 지난후 PING 수행 */
   setTimeout(() => ping(target, { timeout: 5000 }), 1000)
@@ -56,6 +60,7 @@ for (const itm of pm2apps.apps) {
 
 /** PING체크, HEAD 메소드로 접근하여 부담을 최소화 시킨다 */
 function ping(target, opt) {
+  console.log('PING..', target, PING_TIME)
   return fetch (`${target}${PING_URI}`, {
     method: 'HEAD',
     keepalive: true,
@@ -81,7 +86,7 @@ async function checkAlive() {
       serverInvalid(server, curtime)
     }
   }
-  console.log('CHECK-ALIVE..', servers.map((v, i) => v.alive))
+  console.log('CHECK-ALIVE..', LBNO, servers.map((v, i) => v.alive))
   hndHeartbeat = setTimeout(checkAlive, HEARTBEAT_INTERVAL)
 }
 setTimeout(checkAlive, 2000)
@@ -102,11 +107,15 @@ function serverInvalid(server, curtime) {
 }
 
 /** 로드밸런싱 */
+// const loadbalancer = express()
+// loadbalancer.use(async (req, res, next) => { })
+// const loadbalancer = http.createServer(async (req, res) => { })
 const loadbalancer = http.createServer(async (req, res) => {
   /** 서버 갯수만큼 retry 한다 */
   RETRY_LOOP: for (let retry = 0; retry < servers.length + 1; retry++) {
     const curtime = new Date().getTime()
-    const server = servers[(svrinx = (svrinx + 1) % servers.length)]
+    const server = servers[(svrinx = ((svrinx + LBNO + 1) % servers.length))]
+    // console.log('REQ:', LBNO, svrinx, servers.length, ((svrinx + LBNO + 1) % servers.length), req.url)
     if (server.nextping == 0) { server.nextping = curtime }
     if (retry > 0) { console.log('SERVER:', svrinx, retry) }
     /** 서버가 죽어있고 ping 체크시간이 도래하지 않은경우 다음서버로 */
@@ -129,6 +138,12 @@ const loadbalancer = http.createServer(async (req, res) => {
       }
     }
     /** 서버 정상판단여부가 끝나면 Proxy 를 통해 본 Request 수행 */
+    // if (server.alive) {
+    //   req.headers['x-svrinx'] = svrinx
+    //   req.rawHeaders['x-svrinx'] = svrinx
+    //   eproxy(server.target)(req, res, next);
+    //   break RETRY_LOOP
+    // }
     if (server.alive && server.proxy?.web) {
       req.headers['x-svrinx'] = svrinx
       req.rawHeaders['x-svrinx'] = svrinx
@@ -136,6 +151,7 @@ const loadbalancer = http.createServer(async (req, res) => {
       break RETRY_LOOP
     }
   }
+  return
 })
 /** 로드밸런싱 서버 설정 */
 Object.assign(loadbalancer, {
@@ -165,11 +181,11 @@ function proxyServer() {
   proxy.on('proxyRes', (pres, req, res) => {
     const svrinx = req.rawHeaders['x-svrinx']
     const path = req.url
-    console.log('SVR-INX:', svrinx, path)
+    // console.log('SVR-INX:', svrinx, path)
     res.setHeader('x-svrinx', svrinx)
   })
   return proxy
 }
 
-const PORT = pm2apps.apps[0].env.PORT
+const PORT = pm2conf.apps[0].env.PORT
 loadbalancer.listen(PORT, () => { console.log(`Load Balancer running on port ${PORT}`) })
